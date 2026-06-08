@@ -1,0 +1,14 @@
+appId: com.phoebe.pet
+productName: 菲比桌宠
+directories:
+  output: release
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - assets/**/*
+win:
+  target: portable
+  icon: assets/icon.ico
+extraResources:
+  - from: assets/
+    to: assets/
