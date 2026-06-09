@@ -14,7 +14,7 @@ const store = new Store<WindowState>({
   defaults: {
     width: 200,
     height: 280,
-    alwaysOnTop: false,
+    alwaysOnTop: true,
     scale: 1,
   },
 })
@@ -54,8 +54,10 @@ export function createPetWindow(): BrowserWindow {
     frame: false,
     alwaysOnTop: state.alwaysOnTop,
     resizable: true,
-    skipTaskbar: true,
+    skipTaskbar: false,
     hasShadow: false,
+    title: '菲比桌宠',
+    icon: require('path').join(__dirname, '../assets/sprites/idle/PhoebeX_038.png'),
     webPreferences: {
       preload: require('path').join(__dirname, 'preload.js'),
       contextIsolation: true,
