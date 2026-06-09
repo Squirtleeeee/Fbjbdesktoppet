@@ -2,6 +2,7 @@ import { StateMachine, type PetState } from '../engine/state-machine'
 import { SpriteManager } from '../engine/sprite-manager'
 import { Animator, ANIM_CONFIGS } from '../engine/animator'
 import { CanvasRenderer } from '../engine/canvas-renderer'
+import { createEffectForState, type EffectState } from '../engine/effects/state-effects'
 import type { SpeechBubble } from '../ui/speech-bubble'
 import type { TokenBar } from '../ui/token-bar'
 import type { WorkflowPanel } from '../ui/workflow-panel'
@@ -15,12 +16,14 @@ export class Pet {
   private tokenBar: TokenBar | null = null
   private workflowPanel: WorkflowPanel | null = null
 
+  // 每状态特效缓存
+  private effects: Map<PetState, EffectState> = new Map()
+
   constructor(container: HTMLElement) {
     this.stateMachine = new StateMachine()
     this.spriteManager = new SpriteManager()
     this.renderer = new CanvasRenderer(container)
 
-    // 初始 animator (idle)
     const config = ANIM_CONFIGS.idle
     const frameCount = this.getFrameCountForState('idle')
     this.animator = new Animator(config, frameCount)
@@ -28,14 +31,18 @@ export class Pet {
     this.renderer.setSpriteManager(this.spriteManager)
     this.renderer.setAnimator(this.animator)
 
-    // 状态变化 → 切换动画
+    // 预创建所有特效
+    const states: PetState[] = ['idle', 'thinking', 'working', 'done', 'waiting_auth']
+    for (const s of states) {
+      this.effects.set(s, createEffectForState(s))
+    }
+
     this.stateMachine.onTransition((_from, to) => {
       this.onStateChange(to)
     })
   }
 
   private getFrameCountForState(state: PetState): number {
-    // 从 sprite manager 获取，但加载前先用映射估算
     const counts: Record<PetState, number> = {
       idle: 6,
       thinking: 4,
@@ -48,6 +55,10 @@ export class Pet {
 
   async init(): Promise<void> {
     await this.spriteManager.loadAll()
+    // 初始状态 idle + 特效
+    const idleEffect = this.effects.get('idle')!
+    idleEffect.reset()
+    this.renderer.setPetState('idle', idleEffect)
     this.renderer.start()
   }
 
@@ -63,16 +74,21 @@ export class Pet {
     const config = ANIM_CONFIGS[to]
     const frames = this.spriteManager.getFrames(to)
     this.animator.reset(config, frames.length)
-    this.renderer.setPetState(to)
 
-    // UI 面板显隐
+    // 特效切换
+    const effect = this.effects.get(to)
+    if (effect) {
+      effect.reset()
+      this.renderer.setPetState(to, effect)
+    }
+
+    // UI 面板
     if (to === 'working') {
       this.workflowPanel?.show()
     } else {
       this.workflowPanel?.hide()
     }
 
-    // 气泡
     this.speechBubble?.showForState(to)
   }
 
