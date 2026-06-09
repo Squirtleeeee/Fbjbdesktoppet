@@ -31,7 +31,16 @@ contextBridge.exposeInMainWorld('petAPI', {
       callback(data)
     })
   },
+  // 监听主进程菜单动作
+  onMenuAction: (callback: (action: string) => void) => {
+    ipcRenderer.on('menu-action', (_event, action: string) => {
+      callback(action)
+    })
+  },
+  // 右键 → 通知主进程弹出菜单
+  showContextMenu: () => ipcRenderer.send('show-context-menu'),
   toggleAlwaysOnTop: () => ipcRenderer.invoke('toggle-always-on-top'),
   isAlwaysOnTop: () => ipcRenderer.invoke('is-always-on-top'),
   getScale: () => ipcRenderer.invoke('get-scale'),
+  isAlwaysOnTopSync: () => ipcRenderer.sendSync('is-always-on-top-sync'),
 })

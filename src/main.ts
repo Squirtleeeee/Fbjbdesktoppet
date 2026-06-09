@@ -7,9 +7,14 @@ import { TokenTracker } from './data/token-tracker'
 
 async function main() {
   const appEl = document.getElementById('app')!
-  appEl.classList.add('draggable')
 
-  // 初始化 Pet
+  // ──── 右键菜单 ────
+  window.addEventListener('contextmenu', (e) => {
+    e.preventDefault()
+    window.petAPI?.showContextMenu()
+  })
+
+  // ──── Pet ────
   const pet = new Pet(appEl)
 
   // UI 组件
@@ -17,20 +22,22 @@ async function main() {
   const tokenBar = new TokenBar(appEl)
   const workflowPanel = new WorkflowPanel(appEl)
 
+  // 默认隐藏 → 通过右键菜单打开
+  tokenBar.hide()
+  workflowPanel.hide()
+
   pet.setSpeechBubble(speechBubble)
   pet.setTokenBar(tokenBar)
   pet.setWorkflowPanel(workflowPanel)
 
-  // 数据层
+  // ──── 数据层 ────
   const stateReceiver = new StateReceiver()
   const tokenTracker = new TokenTracker()
 
-  // 监听状态变化
   stateReceiver.onStateChange((state) => {
     pet.setState(state)
   })
 
-  // 监听 Token 更新
   stateReceiver.onTokenUpdate((tokens) => {
     tokenTracker.add(tokens.input, tokens.output, tokens.cacheRead, tokens.cacheCreate)
     const stats = tokenTracker.getStats()
@@ -43,15 +50,34 @@ async function main() {
     })
   })
 
-  // 监听工作流更新
   stateReceiver.onWorkflowUpdate((steps) => {
     workflowPanel.update(steps)
   })
 
-  // 加载精灵 + 启动渲染
+  // ──── 菜单动作 ────
+  let tokenVisible = false
+  let workflowVisible = false
+
+  window.petAPI.onMenuAction((action: string) => {
+    switch (action) {
+      case 'toggle-token':
+        tokenVisible = !tokenVisible
+        tokenVisible ? tokenBar.show() : tokenBar.hide()
+        break
+      case 'toggle-workflow':
+        workflowVisible = !workflowVisible
+        workflowVisible ? workflowPanel.show() : workflowPanel.hide()
+        break
+      case 'scale-0.5': pet.getRenderer().setScale(0.5); break
+      case 'scale-1': pet.getRenderer().setScale(1); break
+      case 'scale-2': pet.getRenderer().setScale(2); break
+      case 'scale-3': pet.getRenderer().setScale(3); break
+    }
+  })
+
+  // ──── 启动 ────
   await pet.init()
 
-  // 检查是否新的一天，重置统计
   tokenTracker.resetIfNewDay()
   const stats = tokenTracker.getStats()
   tokenBar.update({
@@ -62,26 +88,13 @@ async function main() {
     total: stats.total,
   })
 
-  // 显示初始气泡
   speechBubble.showForState('idle')
-
-  // 注册 WS 事件监听
   stateReceiver.start()
 
-  // 获取初始缩放
   try {
     const scale = await window.petAPI.getScale()
     pet.getRenderer().setScale(scale)
-  } catch { /* main process not ready yet */ }
-
-  // 监听缩放变化
-  if (window.petAPI) {
-    window.petAPI.onEvent((event: any) => {
-      if (event.type === 'scale_changed') {
-        pet.getRenderer().setScale((event as any).scale)
-      }
-    })
-  }
+  } catch { /* not ready */ }
 }
 
 main().catch(console.error)

@@ -46,7 +46,14 @@ export class TokenBar {
     this.el.appendChild(this.barEl)
     this.el.appendChild(this.labelEl)
     container.appendChild(this.el)
+
+    // 默认隐藏
+    this.el.style.opacity = '0'
+    this.el.style.transition = 'opacity 0.3s ease'
   }
+
+  show(): void { this.el.style.opacity = '1' }
+  hide(): void { this.el.style.opacity = '0' }
 
   update(data: TokenData): void {
     this.data = data

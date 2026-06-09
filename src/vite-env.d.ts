@@ -27,9 +27,12 @@ type EventFromMain = PetEventFromMain | WorkflowEventFromMain | TokenEventFromMa
 
 interface PetAPI {
   onEvent: (callback: (event: EventFromMain) => void) => void
+  onMenuAction: (callback: (action: string) => void) => void
+  showContextMenu: () => void
   toggleAlwaysOnTop: () => Promise<boolean>
   isAlwaysOnTop: () => Promise<boolean>
   getScale: () => Promise<number>
+  isAlwaysOnTopSync: () => boolean
 }
 
 interface Window {
