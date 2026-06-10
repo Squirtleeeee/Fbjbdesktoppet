@@ -31,14 +31,22 @@ contextBridge.exposeInMainWorld('petAPI', {
       callback(data)
     })
   },
-  // 监听主进程菜单动作
   onMenuAction: (callback: (action: string) => void) => {
     ipcRenderer.on('menu-action', (_event, action: string) => {
       callback(action)
     })
   },
-  // 右键 → 通知主进程弹出菜单
+  // 右键菜单
   showContextMenu: () => ipcRenderer.send('show-context-menu'),
+  // 鼠标穿透控制
+  setMouseEvents: (ignore: boolean) => ipcRenderer.send('set-mouse-events', ignore),
+  // 主进程拖拽
+  startDrag: () => ipcRenderer.send('start-drag'),
+  stopDrag: () => ipcRenderer.send('stop-drag'),
+  // 持久化缩放
+  saveScale: (scale: number) => ipcRenderer.send('save-scale', scale),
+  // Token 数据回传
+  sendTokenData: (data: unknown) => ipcRenderer.send('token-data-response', data),
   toggleAlwaysOnTop: () => ipcRenderer.invoke('toggle-always-on-top'),
   isAlwaysOnTop: () => ipcRenderer.invoke('is-always-on-top'),
   getScale: () => ipcRenderer.invoke('get-scale'),

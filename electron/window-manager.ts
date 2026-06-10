@@ -107,3 +107,7 @@ export function isAlwaysOnTop(): boolean {
 export function setScale(scale: number): void {
   store.set('scale', Math.max(0.5, Math.min(3, scale)))
 }
+
+export function setMouseEvents(win: BrowserWindow, ignore: boolean): void {
+  win.setIgnoreMouseEvents(ignore, { forward: true })
+}

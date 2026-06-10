@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token 统计</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 16px;
+    min-width: 380px;
+  }
+  h2 { font-size: 16px; margin-bottom: 12px; color: #fff; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab {
+    padding: 6px 14px;
+    border: 1px solid #444;
+    background: #252540;
+    color: #aaa;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .tab.active { background: #4fc3f7; color: #000; border-color: #4fc3f7; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .stat-row { margin-bottom: 12px; }
+  .stat-label { font-size: 11px; color: #888; margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .stat-value { font-size: 11px; color: #ccc; }
+  .bar-wrap {
+    height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px;
+    overflow: hidden; display: flex;
+  }
+  .bar-input { background: #42a5f5; height: 100%; }
+  .bar-output { background: #66bb6a; height: 100%; }
+  .bar-cache { background: #ffa726; height: 100%; }
+  .total-line {
+    margin-top: 16px; padding-top: 12px; border-top: 1px solid #333;
+    font-size: 13px; display: flex; justify-content: space-between;
+  }
+  .empty { color: #666; text-align: center; padding: 40px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<h2>📊 Token 统计</h2>
+<div class="tabs">
+  <button class="tab active" data-page="conversation">上次对话</button>
+  <button class="tab" data-page="today">今日</button>
+  <button class="tab" data-page="project">本项目</button>
+  <button class="tab" data-page="week">近七天</button>
+  <button class="tab" data-page="total">总计</button>
+</div>
+<div id="pages"></div>
+<script>
+const { ipcRenderer } = require('electron')
+
+// 收到 token 数据后渲染
+ipcRenderer.on('token-data', (_event, data) => {
+  render(data)
+})
+
+function render(data) {
+  const pages = document.getElementById('pages')
+  const periods = ['conversation', 'today', 'project', 'week', 'total']
+
+  pages.innerHTML = periods.map(p => {
+    const d = data[p]
+    if (!d || d.total === 0) {
+      return `<div class="page ${p === 'conversation' ? 'active' : ''}" data-page="${p}">
+        <div class="empty">暂无数据</div>
+      </div>`
+    }
+    const total = d.input + d.output + d.cacheRead + d.cacheCreate || 1
+    const inputPct = (d.input / total * 100).toFixed(1)
+    const outputPct = (d.output / total * 100).toFixed(1)
+    const cachePct = ((d.cacheRead + d.cacheCreate) / total * 100).toFixed(1)
+    const cacheRate = total > 0 ? ((d.cacheRead + d.cacheCreate) / total * 100).toFixed(1) : '0'
+
+    return `<div class="page ${p === 'conversation' ? 'active' : ''}" data-page="${p}">
+      <div class="stat-row">
+        <div class="stat-label"><span>Input</span><span class="stat-value">${fmt(d.input)}</span></div>
+        <div class="bar-wrap"><div class="bar-input" style="width:${inputPct}%"></div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label"><span>Output</span><span class="stat-value">${fmt(d.output)}</span></div>
+        <div class="bar-wrap"><div class="bar-output" style="width:${outputPct}%"></div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label"><span>Cache Read</span><span class="stat-value">${fmt(d.cacheRead)}</span></div>
+        <div class="bar-wrap"><div class="bar-cache" style="width:${(d.cacheRead/total*100).toFixed(1)}%"></div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label"><span>Cache Create</span><span class="stat-value">${fmt(d.cacheCreate)}</span></div>
+        <div class="bar-wrap"><div class="bar-cache" style="width:${(d.cacheCreate/total*100).toFixed(1)}%"></div></div>
+      </div>
+      <div class="total-line">
+        <span>合计</span>
+        <span>${fmt(d.total)} | 缓存命中率 ${cacheRate}%</span>
+      </div>
+    </div>`
+  }).join('')
+
+  // Tab 切换
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+      tab.classList.add('active')
+      const page = tab.dataset.page
+      document.querySelectorAll('.page').forEach(p => {
+        p.classList.toggle('active', p.dataset.page === page)
+      })
+    })
+  })
+}
+
+function fmt(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  return String(n)
+}
+
+// 请求数据
+ipcRenderer.send('request-token-data')
+</script>
+</body>
+</html>
