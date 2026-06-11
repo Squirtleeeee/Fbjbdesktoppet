@@ -60,7 +60,23 @@ async function main() {
     }
   })
 
-  // ──── 交互 ────
+  // ──── 像素穿透 + 交互 ────
+  let overPet = false
+
+  // 每 50ms 检测一次鼠标是否在小狗身上，切换穿透
+  setInterval(() => {
+    // 获取当前鼠标位置（通过一次性 mousemove 捕获）
+    // 这里用 active 状态来判断
+  }, 50)
+
+  document.addEventListener('mousemove', (e) => {
+    const hit = pet.getRenderer().hitTest(e.clientX, e.clientY)
+    if (hit !== overPet) {
+      overPet = hit
+      window.petAPI?.setMouseEvents(!hit) // 不在狗身上 → 穿透
+    }
+  })
+
   // 左键小狗 → 主进程拖拽
   document.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return
@@ -72,19 +88,21 @@ async function main() {
     window.petAPI?.stopDrag()
   })
 
-  // 滚轮缩放（仅在小狗身上，忽略微小滚动）
+  // 滚轮缩放
   document.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaY) < 5) return // 防误触
-    const renderer = pet.getRenderer()
-    if (!renderer.hitTest(e.clientX, e.clientY)) return
+    if (Math.abs(e.deltaY) < 5) return
+    if (!pet.getRenderer().hitTest(e.clientX, e.clientY)) return
     e.preventDefault()
-    const newScale = Math.max(0.3, Math.min(3, renderer.getScale() - e.deltaY * 0.002))
-    renderer.setScale(newScale)
+    const newScale = Math.max(0.3, Math.min(3, pet.getRenderer().getScale() - e.deltaY * 0.002))
+    pet.getRenderer().setScale(newScale)
     window.petAPI?.saveScale(newScale)
   }, { passive: false })
 
   // ──── 启动 ────
   await pet.init()
+
+  // 初始穿透状态（只有移到小狗身上才启用交互）
+  window.petAPI?.setMouseEvents(true)
 
   speechBubble.showForState('idle')
   stateReceiver.start()

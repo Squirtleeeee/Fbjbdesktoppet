@@ -180,21 +180,17 @@ function createWindow(): void {
     tokenPopup.loadFile(popupPath)
     tokenPopup.on('closed', () => { tokenPopup = null })
 
-    // 等 popup 加载完成后，让它请求数据
+    // 加载完成后，向渲染进程请求数据
     tokenPopup.webContents.on('did-finish-load', () => {
-      // 向主渲染进程请求 token 数据，主渲染进程收到后发回来
+      mainWindow?.webContents.send('menu-action', 'request-token-data')
     })
   }
 
-  // Popup 请求 token 数据 → 转发给主渲染进程
-  ipcMain.on('request-token-data', () => {
-    mainWindow?.webContents.send('menu-action', 'request-token-data')
-  })
-
-  // 主渲染进程返回 token 数据 → 转发给 popup
+  // 主渲染进程返回 token 数据 → 注入 popup
   ipcMain.on('token-data-response', (_event, data: unknown) => {
     if (tokenPopup && !tokenPopup.isDestroyed()) {
-      tokenPopup.webContents.send('token-data', data)
+      const json = JSON.stringify(data)
+      tokenPopup.webContents.executeJavaScript(`window.renderTokenData(${json})`)
     }
   })
 

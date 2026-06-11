@@ -55,12 +55,19 @@
 </div>
 <div id="pages"></div>
 <script>
-const { ipcRenderer } = require('electron')
-
-// 收到 token 数据后渲染
-ipcRenderer.on('token-data', (_event, data) => {
+// 由主进程通过 executeJavaScript 调用
+window.renderTokenData = function(data) {
   render(data)
-})
+}
+
+// 页面加载完成后请求数据
+setTimeout(() => {
+  try {
+    require('electron').ipcRenderer.send('request-token-data')
+  } catch(e) {
+    document.getElementById('pages').innerHTML = '<div class="empty">加载中，请稍后再试...</div>'
+  }
+}, 200)
 
 function render(data) {
   const pages = document.getElementById('pages')
@@ -122,8 +129,6 @@ function fmt(n) {
   return String(n)
 }
 
-// 请求数据
-ipcRenderer.send('request-token-data')
 </script>
 </body>
 </html>
