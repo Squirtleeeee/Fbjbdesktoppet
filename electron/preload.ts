@@ -21,9 +21,17 @@ export interface TokenEventFromMain {
     cacheCreate: number
     total: number
   }
+  projectKey?: string
+  transcriptKey?: string
+  finalize?: boolean
+  source?: 'claude-code' | 'cursor'
 }
 
-export type EventFromMain = PetEventFromMain | WorkflowEventFromMain | TokenEventFromMain
+export interface SessionStartEventFromMain {
+  type: 'session_start'
+}
+
+export type EventFromMain = PetEventFromMain | WorkflowEventFromMain | TokenEventFromMain | SessionStartEventFromMain
 
 contextBridge.exposeInMainWorld('petAPI', {
   onEvent: (callback: (event: EventFromMain) => void) => {

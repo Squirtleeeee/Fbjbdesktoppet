@@ -42,30 +42,71 @@
     font-size: 13px; display: flex; justify-content: space-between;
   }
   .empty { color: #666; text-align: center; padding: 40px 0; font-size: 14px; }
+  .meta-box {
+    background: rgba(79,195,247,0.08);
+    border: 1px solid rgba(79,195,247,0.25);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    font-size: 11px;
+    line-height: 1.55;
+    color: #aaa;
+  }
+  .meta-box strong { color: #4fc3f7; }
+  .meta-box .dim { color: #777; font-size: 10px; margin-top: 6px; }
 </style>
 </head>
 <body>
 <h2>📊 Token 统计</h2>
+<div id="meta" class="meta-box">加载中…</div>
 <div class="tabs">
   <button class="tab active" data-page="conversation">上次对话</button>
   <button class="tab" data-page="today">今日</button>
-  <button class="tab" data-page="project">本项目</button>
+  <button class="tab" data-page="project">当前项目</button>
   <button class="tab" data-page="week">近七天</button>
   <button class="tab" data-page="total">总计</button>
 </div>
 <div id="pages"></div>
 <script>
-// 通过 preload 暴露的 popupAPI 接收数据
-window.popupAPI.onTokenData(function(data) {
-  render(data)
-})
+function showError(msg) {
+  document.getElementById('pages').innerHTML =
+    '<div class="empty" style="color:#f48fb1;">' + msg + '</div>'
+}
 
-// 页面加载完成后请求数据
-setTimeout(() => {
-  window.popupAPI.requestTokenData()
-}, 200)
+if (!window.popupAPI) {
+  showError('弹窗初始化失败，请重启桌宠后重试')
+} else {
+  window.popupAPI.onTokenData(function(data) {
+    render(data)
+  })
+
+  setTimeout(function() {
+    window.popupAPI.requestTokenData()
+  }, 200)
+}
+
+function renderMeta(meta) {
+  const el = document.getElementById('meta')
+  if (!meta) {
+    el.innerHTML = '<strong>统计维度说明</strong><div class="dim">· 不区分 Cursor / VS Code，只统计 Hook 上报的数据<br>· Token 目前仅 Claude Code 可从 transcript 读取；Cursor 只上报状态<br>· 不按模型统计，按会话 transcript 累计<br>· 「当前项目」= Hook 上报的工作目录<br>· 「总计」= 桌宠记录的所有项目合计</div>'
+    return
+  }
+  const src = meta.lastSource === 'claude-code' ? 'Claude Code' :
+    meta.lastSource === 'cursor' ? 'Cursor（暂无 Token）' : '尚无上报'
+  el.innerHTML =
+    '<strong>统计说明</strong><br>' +
+    '数据来源：<strong>' + src + '</strong><br>' +
+    '当前项目：<strong>' + (meta.projectLabel || '未识别') + '</strong>' +
+    (meta.projectKey && meta.projectKey !== 'default' ? '<br><span class="dim">' + meta.projectKey + '</span>' : '') +
+    '<div class="dim">· 不区分编辑器，Hook 连上谁就算谁<br>· 不按模型统计，按 transcript 会话累计<br>· Cursor 暂不支持 Token，需 Claude Code Hook</div>'
+}
 
 function render(data) {
+  if (!data) {
+    showError('暂无 Token 数据')
+    return
+  }
+  renderMeta(data.meta)
   const pages = document.getElementById('pages')
   const periods = ['conversation', 'today', 'project', 'week', 'total']
 

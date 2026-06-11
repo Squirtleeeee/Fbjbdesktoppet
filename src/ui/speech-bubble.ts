@@ -1,19 +1,19 @@
 import type { PetState } from '../engine/state-machine'
+import type { SpriteRect } from '../engine/canvas-renderer'
 import { getRandomPhrase } from '../utils/speech'
 
 export class SpeechBubble {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private timer: ReturnType<typeof setTimeout> | null = null
-  private animTimer: ReturnType<typeof setTimeout> | null = null
   private alpha = 0
   private targetAlpha = 0
   private text = ''
   private animFrameId = 0
   private observer: ResizeObserver | null = null
+  private getPetRect: (() => SpriteRect) | null = null
 
   private readonly DISPLAY_DURATION = 2500
-  private readonly FADE_DURATION = 350
 
   constructor(container: HTMLElement) {
     this.canvas = document.createElement('canvas')
@@ -29,13 +29,14 @@ export class SpeechBubble {
     container.appendChild(this.canvas)
     this.ctx = this.canvas.getContext('2d')!
 
-    // 跟随父容器大小
     this.observer = new ResizeObserver(() => this.resize())
     this.observer.observe(container)
     this.resize()
-
-    // 动画循环
     this.loop()
+  }
+
+  setPetRectProvider(fn: () => SpriteRect): void {
+    this.getPetRect = fn
   }
 
   private resize(): void {
@@ -63,13 +64,11 @@ export class SpeechBubble {
   }
 
   private loop = (): void => {
-    // 平滑过渡
     const speed = 0.08
     this.alpha += (this.targetAlpha - this.alpha) * speed
     if (Math.abs(this.alpha - this.targetAlpha) < 0.001) {
       this.alpha = this.targetAlpha
     }
-
     this.draw()
     this.animFrameId = requestAnimationFrame(this.loop)
   }
@@ -85,92 +84,80 @@ export class SpeechBubble {
     ctx.save()
     ctx.globalAlpha = this.alpha
 
-    const petSize = Math.min(w, h - 30)
-    const petTop = (h - petSize - 20) / 2
+    const rect = this.getPetRect?.() ?? {
+      x: (w - 200) / 2,
+      y: (h - 200) / 2,
+      size: 200,
+    }
 
-    // 气泡位置：角色头顶
-    const bubbleCX = w / 2 + petSize * 0.15
-    const bubbleCY = petTop + petSize * 0.08
-    const bubbleW = Math.min(this.text.length * 11 + 36, w - 20)
-    const bubbleH = 38
+    // 气泡在头顶正上方，尾巴指向头顶
+    const headX = rect.x + rect.size * 0.5
+    const headY = rect.y + rect.size * 0.14
+    const bubbleW = Math.min(Math.max(this.text.length * 10 + 28, 72), rect.size * 1.1)
+    const bubbleH = 34
+    const bubbleBottom = headY - 4
+    const bubbleCX = headX
 
-    this.drawComicBubble(ctx, bubbleCX, bubbleCY, bubbleW, bubbleH)
+    this.drawComicBubble(ctx, bubbleCX, bubbleBottom, bubbleW, bubbleH, headX, headY)
 
     ctx.restore()
   }
 
   private drawComicBubble(
     ctx: CanvasRenderingContext2D,
-    cx: number, cy: number, w: number, h: number
+    cx: number,
+    bottomY: number,
+    w: number,
+    h: number,
+    tailTargetX: number,
+    tailTargetY: number,
   ): void {
     if (!this.text) return
 
     const x = cx - w / 2
-    const y = cy - h
+    const y = bottomY - h
 
-    // ── 阴影 ──
     ctx.shadowColor = 'rgba(0,0,0,0.12)'
-    ctx.shadowBlur = 8
-    ctx.shadowOffsetY = 3
+    ctx.shadowBlur = 6
+    ctx.shadowOffsetY = 2
 
-    // ── 主体 (不规则圆角矩形，漫画风) ──
     ctx.fillStyle = '#fff'
     ctx.strokeStyle = '#333'
-    ctx.lineWidth = 2.5
+    ctx.lineWidth = 2
     ctx.lineJoin = 'round'
 
-    const r = 14
+    const r = 10
     ctx.beginPath()
-    // 左上
-    ctx.moveTo(x + r + 4, y)
-    // 顶部（微拱）
-    ctx.quadraticCurveTo(x + w * 0.3, y - 2, x + w * 0.55, y + 1)
-    ctx.quadraticCurveTo(x + w * 0.8, y - 1, x + w - r, y)
-    // 右上圆角
+    ctx.moveTo(x + r, y)
+    ctx.lineTo(x + w - r, y)
     ctx.arcTo(x + w, y, x + w, y + r, r)
-    // 右
     ctx.lineTo(x + w, y + h - r)
-    // 右下圆角
     ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
 
-    // 三角尾巴指向角色（在底部中间偏左）
-    const tailX = x + w * 0.35
-    ctx.lineTo(tailX + 14, y + h)
-    ctx.lineTo(tailX + 7, y + h + 14)
-    ctx.lineTo(tailX - 2, y + h)
+    // 尾巴指向头顶
+    const tailBase = cx
+    ctx.lineTo(tailBase + 8, y + h)
+    ctx.lineTo(tailTargetX, tailTargetY)
+    ctx.lineTo(tailBase - 8, y + h)
 
-    // 左下圆角
     ctx.arcTo(x, y + h, x, y + h - r, r)
-    // 左
     ctx.lineTo(x, y + r)
-    // 左上圆角
     ctx.arcTo(x, y, x + r, y, r)
-
     ctx.closePath()
     ctx.fill()
     ctx.stroke()
 
-    // ── 高光线 ──
     ctx.shadowColor = 'transparent'
     ctx.shadowBlur = 0
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(x + r + 6, y + 6)
-    ctx.quadraticCurveTo(x + w * 0.3, y + 4, x + w - r - 4, y + 6)
-    ctx.stroke()
-
-    // ── 文字 ──
     ctx.fillStyle = '#222'
-    ctx.font = 'bold 13px "Microsoft YaHei", system-ui, sans-serif'
+    ctx.font = 'bold 11px "Microsoft YaHei", system-ui, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(this.text, cx, cy - h / 2)
+    ctx.fillText(this.text, cx, y + h / 2)
   }
 
   destroy(): void {
     if (this.timer) clearTimeout(this.timer)
-    if (this.animTimer) clearTimeout(this.animTimer)
     cancelAnimationFrame(this.animFrameId)
     if (this.observer) { this.observer.disconnect(); this.observer = null }
     this.canvas.remove()

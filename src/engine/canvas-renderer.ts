@@ -2,8 +2,8 @@ import type { PetState } from './state-machine'
 import type { SpriteManager } from './sprite-manager'
 import type { Animator } from './animator'
 
-// 存储精灵渲染位置（供 hit test 用）
-interface SpriteRect {
+// 存储精灵渲染位置（供 hit test / UI 定位用）
+export interface SpriteRect {
   x: number
   y: number
   size: number
@@ -30,6 +30,7 @@ export class CanvasRenderer {
     this.canvas.style.height = '100%'
     container.appendChild(this.canvas)
     this.ctx = this.canvas.getContext('2d')!
+    this.ctx.imageSmoothingEnabled = false
   }
 
   private BASE_SIZE = 200
@@ -48,11 +49,16 @@ export class CanvasRenderer {
     const w = this.canvas.width / (window.devicePixelRatio || 1)
     const h = this.canvas.height / (window.devicePixelRatio || 1)
     const petSize = this.BASE_SIZE * this.scale
-    this.spriteRect = {
-      x: (w - petSize) / 2,
-      y: (h - petSize) / 2,
-      size: petSize,
-    }
+    const leftReserve = 112
+    let petX = w - petSize - 6
+    if (petX < leftReserve) petX = leftReserve
+    if (petX + petSize > w - 4) petX = Math.max(4, w - petSize - 4)
+    const petY = (h - petSize) / 2
+    this.spriteRect = { x: petX, y: petY, size: petSize }
+  }
+
+  getSpriteRect(): SpriteRect {
+    return { ...this.spriteRect }
   }
 
   setSpriteManager(sm: SpriteManager): void { this.spriteManager = sm }
@@ -111,16 +117,24 @@ export class CanvasRenderer {
     ctx.clearRect(0, 0, w, h)
 
     this.updateSpriteRect()
-    const { x: petX, y: petY, size: petSize } = this.spriteRect
+    const { x: petX, size: petSize } = this.spriteRect
+    const petY = this.spriteRect.y + this.getBobOffset(this.currentPetState)
 
     try {
       const frames = sm.getFrames(this.currentPetState)
-      if (frames.length > 0 && anim.currentFrame < frames.length) {
-        ctx.drawImage(frames[anim.currentFrame], petX, petY, petSize, petSize)
-      }
+      if (frames.length === 0) return
+
+      const idx = Math.min(anim.currentFrame, frames.length - 1)
+      ctx.drawImage(frames[idx], petX, petY, petSize, petSize)
     } catch {
       // 精灵未加载
     }
+  }
+
+  /** idle 轻微呼吸，幅度极小避免频闪感 */
+  private getBobOffset(state: PetState): number {
+    if (state !== 'idle') return 0
+    return Math.sin(performance.now() / 1000 * 2) * 1.2 * this.scale
   }
 
   /**

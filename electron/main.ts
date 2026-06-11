@@ -101,7 +101,7 @@ function buildPetContextMenu(): Menu {
     },
     {
       label: '📋 工作流',
-      click: () => mainWindow?.webContents.send('menu-action', 'toggle-workflow'),
+      click: () => mainWindow?.webContents.send('menu-action', 'show-workflow'),
     },
     { type: 'separator' },
     {

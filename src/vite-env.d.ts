@@ -21,9 +21,17 @@ interface TokenEventFromMain {
     cacheCreate: number
     total: number
   }
+  projectKey?: string
+  transcriptKey?: string
+  finalize?: boolean
+  source?: 'claude-code' | 'cursor'
 }
 
-type EventFromMain = PetEventFromMain | WorkflowEventFromMain | TokenEventFromMain
+interface SessionStartEventFromMain {
+  type: 'session_start'
+}
+
+type EventFromMain = PetEventFromMain | WorkflowEventFromMain | TokenEventFromMain | SessionStartEventFromMain
 
 interface PetAPI {
   onEvent: (callback: (event: EventFromMain) => void) => void

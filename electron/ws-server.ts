@@ -23,9 +23,17 @@ export interface TokenEvent {
     cacheCreate: number
     total: number
   }
+  projectKey?: string
+  transcriptKey?: string
+  finalize?: boolean
+  source?: 'claude-code' | 'cursor'
 }
 
-export type WsMessage = PetEvent | WorkflowEvent | TokenEvent
+export interface SessionStartEvent {
+  type: 'session_start'
+}
+
+export type WsMessage = PetEvent | WorkflowEvent | TokenEvent | SessionStartEvent
 
 const PORT = 9527
 const MAX_BODY_SIZE = 1024 * 1024 // 1MB limit

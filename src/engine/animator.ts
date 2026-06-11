@@ -7,13 +7,13 @@ export interface AnimConfig {
   loopMode: LoopMode
 }
 
-// 各状态动画配置 (8帧 AI 生成动态序列)
+// idle 8 原生帧；其余 4 关键帧。不做 crossfade / 插值（避免叠影与彩色频闪）
 export const ANIM_CONFIGS: Record<PetState, AnimConfig> = {
-  idle: { fps: 10, loopMode: 'pingpong' },
-  thinking: { fps: 10, loopMode: 'loop' },
-  working: { fps: 12, loopMode: 'loop' },
-  done: { fps: 10, loopMode: 'once' },
-  waiting_auth: { fps: 8, loopMode: 'loop' },
+  idle: { fps: 6, loopMode: 'pingpong' },
+  thinking: { fps: 4, loopMode: 'loop' },
+  working: { fps: 5, loopMode: 'loop' },
+  done: { fps: 5, loopMode: 'once' },
+  waiting_auth: { fps: 4, loopMode: 'loop' },
 }
 
 export class Animator {

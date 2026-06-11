@@ -9,6 +9,12 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'src/index.html'),
+        'token-popup': resolve(__dirname, 'src/token-popup.html'),
+      },
+    },
   },
   plugins: [
     electron([

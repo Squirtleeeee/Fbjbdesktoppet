@@ -1,12 +1,12 @@
 import type { PetState } from './state-machine'
 
-// 每状态帧数（小狗 Shimeji 帧）
+// idle 有 8 张原生 AI 帧；其余状态 4 关键帧。不做像素插值扩展（工作状态插值会产生彩色叠影）
 const FRAME_COUNTS: Record<PetState, number> = {
-  idle: 6,
-  thinking: 6,
-  working: 8,
-  done: 6,
-  waiting_auth: 7,
+  idle: 8,
+  thinking: 4,
+  working: 4,
+  done: 4,
+  waiting_auth: 4,
 }
 
 const SPRITE_BASE = 'sprites'

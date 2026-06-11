@@ -3,7 +3,6 @@ import { SpriteManager } from '../engine/sprite-manager'
 import { Animator, ANIM_CONFIGS } from '../engine/animator'
 import { CanvasRenderer } from '../engine/canvas-renderer'
 import type { SpeechBubble } from '../ui/speech-bubble'
-import type { WorkflowPanel } from '../ui/workflow-panel'
 
 export class Pet {
   private stateMachine: StateMachine
@@ -11,7 +10,6 @@ export class Pet {
   private animator: Animator
   private renderer: CanvasRenderer
   private speechBubble: SpeechBubble | null = null
-  private workflowPanel: WorkflowPanel | null = null
 
   constructor(container: HTMLElement) {
     this.stateMachine = new StateMachine()
@@ -37,7 +35,6 @@ export class Pet {
   }
 
   setSpeechBubble(sb: SpeechBubble): void { this.speechBubble = sb }
-  setWorkflowPanel(wp: WorkflowPanel): void { this.workflowPanel = wp }
 
   setState(state: PetState): void {
     this.stateMachine.transition(state)
@@ -48,13 +45,6 @@ export class Pet {
     const frameCount = this.spriteManager.getFrameCount(to)
     this.animator.reset(config, frameCount)
     this.renderer.setPetState(to)
-
-    if (to === 'working') {
-      this.workflowPanel?.show()
-    } else {
-      this.workflowPanel?.hide()
-    }
-
     this.speechBubble?.showForState(to)
   }
 

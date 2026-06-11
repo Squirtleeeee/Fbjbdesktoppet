@@ -12,7 +12,7 @@ interface WindowState {
 
 const store = new Store<WindowState>({
   defaults: {
-    width: 200,
+    width: 320,
     height: 280,
     alwaysOnTop: true,
     scale: 1,
@@ -45,11 +45,14 @@ export function createPetWindow(): BrowserWindow {
     ? { x: state.x, y: state.y }
     : getDefaultPosition(state.width, state.height)
 
+  const width = Math.max(state.width, 320)
+  const height = state.height
+
   const win = new BrowserWindow({
     x: pos.x,
     y: pos.y,
-    width: state.width,
-    height: state.height,
+    width,
+    height,
     transparent: true,
     frame: false,
     alwaysOnTop: state.alwaysOnTop,

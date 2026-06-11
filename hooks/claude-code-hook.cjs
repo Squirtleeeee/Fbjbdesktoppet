@@ -13,6 +13,12 @@
  *     ],
  *     "PreToolUse": [
  *       { "command": "node", "args": ["<项目路径>/hooks/claude-code-hook.cjs", "pre_tool"] }
+ *     ],
+ *     "UserPromptSubmit": [
+ *       { "command": "node", "args": ["<项目路径>/hooks/claude-code-hook.cjs", "user_prompt"] }
+ *     ],
+ *     "SessionStart": [
+ *       { "command": "node", "args": ["<项目路径>/hooks/claude-code-hook.cjs", "session_start"] }
  *     ]
  *   }
  * }
@@ -20,13 +26,12 @@
 
 const fs = require('fs')
 const http = require('http')
+const path = require('path')
 
 const WS_URL = process.env.PET_WS_URL || 'http://127.0.0.1:9527'
 
-// 解析 stdin 获取 hook 上下文（兼容 Windows 和 Unix）
 function parseStdin() {
   return new Promise((resolve) => {
-    // Claude Code hook 通过 stdin 传入 JSON
     let data = ''
     process.stdin.setEncoding('utf-8')
     process.stdin.on('data', (chunk) => { data += chunk })
@@ -37,12 +42,10 @@ function parseStdin() {
         resolve(null)
       }
     })
-    // 如果 stdin 已经结束（pipe 模式），立刻触发
     process.stdin.on('readable', () => {
       const chunk = process.stdin.read()
       if (chunk) data += chunk
     })
-    // 超时保护：200ms 后还没数据就认为没有 stdin
     setTimeout(() => {
       try {
         resolve(data ? JSON.parse(data) : null)
@@ -53,7 +56,6 @@ function parseStdin() {
   })
 }
 
-// 通过 HTTP POST 发送事件到桌宠
 function sendEvent(data) {
   return new Promise((resolve) => {
     const body = JSON.stringify(data)
@@ -73,10 +75,7 @@ function sendEvent(data) {
       res.resume()
       resolve()
     })
-    req.on('error', () => {
-      // 桌宠未启动时静默失败
-      resolve()
-    })
+    req.on('error', () => resolve())
     req.setTimeout(2000, () => {
       req.destroy()
       resolve()
@@ -86,18 +85,27 @@ function sendEvent(data) {
   })
 }
 
-/**
- * 根据 tool_name 判断状态
- */
+function extractProjectKey(hookData) {
+  if (!hookData) return 'default'
+  if (hookData.cwd) return hookData.cwd
+  if (hookData.project_dir) return hookData.project_dir
+  if (hookData.transcript_path) return path.dirname(hookData.transcript_path)
+  return 'default'
+}
+
 function toolToState(toolName) {
   switch (toolName) {
     case 'Think':
       return 'thinking'
     case 'AskUserQuestion':
+    case 'AskQuestion':
       return 'waiting_auth'
     case 'Write':
     case 'Edit':
+    case 'StrReplace':
+    case 'Delete':
     case 'Bash':
+    case 'Shell':
     case 'Glob':
     case 'Grep':
     case 'Read':
@@ -105,10 +113,50 @@ function toolToState(toolName) {
     case 'WebSearch':
     case 'Task':
     case 'TodoWrite':
+    case 'GenerateImage':
+    case 'SwitchMode':
+    case 'NotebookEdit':
       return 'working'
     default:
       return null
   }
+}
+
+function parseTranscriptUsage(transcriptPath) {
+  if (!transcriptPath || !fs.existsSync(transcriptPath)) return null
+
+  const transcript = JSON.parse(fs.readFileSync(transcriptPath, 'utf-8'))
+  let input = 0
+  let output = 0
+  let cacheRead = 0
+  let cacheCreate = 0
+  const messages = transcript.messages || []
+  for (const msg of messages) {
+    const usage = msg.usage || msg.message?.usage || {}
+    input += usage.input_tokens || 0
+    output += usage.output_tokens || 0
+    cacheRead += usage.cache_read_input_tokens || 0
+    cacheCreate += usage.cache_creation_input_tokens || 0
+  }
+  if (input === 0 && output === 0) return null
+  return { input, output, cacheRead, cacheCreate, total: input + output }
+}
+
+async function sendTokenUpdate(hookData, finalize = false) {
+  try {
+    const transcriptPath = hookData?.transcript_path
+    const usage = parseTranscriptUsage(transcriptPath)
+    if (!usage) return
+
+    await sendEvent({
+      type: 'token_update',
+      tokens: usage,
+      projectKey: extractProjectKey(hookData),
+      transcriptKey: transcriptPath || '',
+      finalize,
+      source: 'claude-code',
+    })
+  } catch { /* ignore parse errors */ }
 }
 
 async function handlePostTool(hookData) {
@@ -120,7 +168,6 @@ async function handlePostTool(hookData) {
     await sendEvent({ type: 'state_change', state })
   }
 
-  // TodoWrite → 更新工作流
   if (toolName === 'TodoWrite') {
     try {
       const input = hookData.tool_input || {}
@@ -137,43 +184,30 @@ async function handlePostTool(hookData) {
     } catch { /* ignore parse errors */ }
   }
 
-  // Token 统计 — 从 transcript 累加当日用量
-  try {
-    const transcriptPath = hookData.transcript_path
-    if (transcriptPath && fs.existsSync(transcriptPath)) {
-      const transcript = JSON.parse(fs.readFileSync(transcriptPath, 'utf-8'))
-      let input = 0, output = 0, cacheRead = 0, cacheCreate = 0
-      const messages = transcript.messages || []
-      for (const msg of messages) {
-        const usage = msg.usage || msg.message?.usage || {}
-        input += usage.input_tokens || 0
-        output += usage.output_tokens || 0
-        cacheRead += usage.cache_read_input_tokens || 0
-        cacheCreate += usage.cache_creation_input_tokens || 0
-      }
-      if (input > 0 || output > 0) {
-        await sendEvent({
-          type: 'token_update',
-          tokens: { input, output, cacheRead, cacheCreate, total: input + output },
-        })
-      }
-    }
-  } catch { /* ignore parse errors */ }
+  await sendTokenUpdate(hookData, false)
 }
 
-async function handleStop() {
+async function handleStop(hookData) {
   await sendEvent({ type: 'state_change', state: 'done' })
+  await sendTokenUpdate(hookData, true)
 }
 
 async function handlePreTool(hookData) {
   if (!hookData) return
   const toolName = hookData.tool_name
-  if (toolName === 'AskUserQuestion') {
+  if (toolName === 'AskUserQuestion' || toolName === 'AskQuestion') {
     await sendEvent({ type: 'state_change', state: 'waiting_auth' })
   }
 }
 
-// Main
+async function handleUserPrompt() {
+  await sendEvent({ type: 'state_change', state: 'working' })
+}
+
+async function handleSessionStart() {
+  await sendEvent({ type: 'session_start' })
+}
+
 async function main() {
   const hookType = process.argv[2]
   const hookData = await parseStdin()
@@ -183,10 +217,16 @@ async function main() {
       await handlePostTool(hookData)
       break
     case 'stop':
-      await handleStop()
+      await handleStop(hookData)
       break
     case 'pre_tool':
       await handlePreTool(hookData)
+      break
+    case 'user_prompt':
+      await handleUserPrompt()
+      break
+    case 'session_start':
+      await handleSessionStart()
       break
     default:
       console.error('[phoebe-hook] unknown hook type:', hookType)
