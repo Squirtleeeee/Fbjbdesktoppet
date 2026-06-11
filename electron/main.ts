@@ -62,6 +62,36 @@ function setupTray(): void {
   })
 }
 
+// ──── Token 弹窗 ────
+let tokenPopup: BrowserWindow | null = null
+
+function openTokenPopup(): void {
+  if (tokenPopup && !tokenPopup.isDestroyed()) {
+    tokenPopup.focus()
+    return
+  }
+  tokenPopup = new BrowserWindow({
+    width: 420, height: 520,
+    parent: mainWindow!,
+    modal: false,
+    frame: true,
+    resizable: true,
+    title: 'Token 统计',
+    webPreferences: {
+      preload: require('path').join(__dirname, 'preload-popup.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+  const popupPath = path.join(__dirname, '../dist/token-popup.html')
+  tokenPopup.loadFile(popupPath)
+  tokenPopup.on('closed', () => { tokenPopup = null })
+
+  tokenPopup.webContents.on('did-finish-load', () => {
+    mainWindow?.webContents.send('menu-action', 'request-token-data')
+  })
+}
+
 // ──── 宠物右键菜单 ────
 function buildPetContextMenu(): Menu {
   return Menu.buildFromTemplate([
@@ -156,41 +186,15 @@ function createWindow(): void {
     setScale(scale)
   })
 
-  // Token 弹窗
-  let tokenPopup: BrowserWindow | null = null
+  // Popup 发送请求 → 转发给主渲染进程
+  ipcMain.on('request-token-data', () => {
+    mainWindow?.webContents.send('menu-action', 'request-token-data')
+  })
 
-  function openTokenPopup(): void {
-    if (tokenPopup && !tokenPopup.isDestroyed()) {
-      tokenPopup.focus()
-      return
-    }
-    tokenPopup = new BrowserWindow({
-      width: 420, height: 520,
-      parent: mainWindow!,
-      modal: false,
-      frame: true,
-      resizable: true,
-      title: 'Token 统计',
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-      },
-    })
-    const popupPath = path.join(__dirname, '../dist/token-popup.html')
-    tokenPopup.loadFile(popupPath)
-    tokenPopup.on('closed', () => { tokenPopup = null })
-
-    // 加载完成后，向渲染进程请求数据
-    tokenPopup.webContents.on('did-finish-load', () => {
-      mainWindow?.webContents.send('menu-action', 'request-token-data')
-    })
-  }
-
-  // 主渲染进程返回 token 数据 → 注入 popup
+  // 主渲染进程返回 token 数据 → 转发给 popup
   ipcMain.on('token-data-response', (_event, data: unknown) => {
     if (tokenPopup && !tokenPopup.isDestroyed()) {
-      const json = JSON.stringify(data)
-      tokenPopup.webContents.executeJavaScript(`window.renderTokenData(${json})`)
+      tokenPopup.webContents.send('token-data-response', data)
     }
   })
 

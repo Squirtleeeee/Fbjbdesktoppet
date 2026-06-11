@@ -29,6 +29,11 @@ interface PetAPI {
   onEvent: (callback: (event: EventFromMain) => void) => void
   onMenuAction: (callback: (action: string) => void) => void
   showContextMenu: () => void
+  setMouseEvents: (ignore: boolean) => void
+  startDrag: () => void
+  stopDrag: () => void
+  saveScale: (scale: number) => void
+  sendTokenData: (data: unknown) => void
   toggleAlwaysOnTop: () => Promise<boolean>
   isAlwaysOnTop: () => Promise<boolean>
   getScale: () => Promise<number>

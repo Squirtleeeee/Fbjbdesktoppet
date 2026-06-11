@@ -8,7 +8,7 @@ files:
   - assets/**/*
 win:
   target: portable
-  icon: assets/icon.ico
+  icon: assets/sprites/idle/frame_03.png
 extraResources:
   - from: assets/
     to: assets/

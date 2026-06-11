@@ -7,3 +7,8 @@ electron.zip
 contact-sheet.html
 桌宠原图/
 *.tgz
+.claude/
+.env
+.env.*
+*.pem
+*.key

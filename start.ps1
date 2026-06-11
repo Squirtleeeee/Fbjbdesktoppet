@@ -15,7 +15,7 @@ Set-Location $projectDir
 
 if (-not $NoBuild) {
   Write-Host "Building..." -ForegroundColor Cyan
-  npx vite build
+  npm run build
   if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 }
 

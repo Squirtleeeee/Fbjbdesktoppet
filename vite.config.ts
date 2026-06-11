@@ -37,6 +37,17 @@ export default defineConfig({
           },
         },
       },
+      {
+        entry: resolve(__dirname, 'electron/preload-popup.ts'),
+        vite: {
+          build: {
+            outDir: resolve(__dirname, 'dist-electron'),
+            rollupOptions: {
+              external: ['electron'],
+            },
+          },
+        },
+      },
     ]),
     electronRenderer(),
   ],

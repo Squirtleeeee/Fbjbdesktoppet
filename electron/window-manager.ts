@@ -57,7 +57,7 @@ export function createPetWindow(): BrowserWindow {
     skipTaskbar: false,
     hasShadow: false,
     title: '菲比桌宠',
-    icon: require('path').join(__dirname, '../assets/sprites/idle/PhoebeX_038.png'),
+    icon: require('path').join(__dirname, '../assets/sprites/idle/frame_03.png'),
     webPreferences: {
       preload: require('path').join(__dirname, 'preload.js'),
       contextIsolation: true,

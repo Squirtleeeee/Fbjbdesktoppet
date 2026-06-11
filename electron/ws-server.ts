@@ -28,6 +28,7 @@ export interface TokenEvent {
 export type WsMessage = PetEvent | WorkflowEvent | TokenEvent
 
 const PORT = 9527
+const MAX_BODY_SIZE = 1024 * 1024 // 1MB limit
 
 function forwardToRenderer(mainWindow: BrowserWindow, msg: WsMessage): void {
   try {
@@ -52,8 +53,17 @@ export function startWsServer(mainWindow: BrowserWindow): http.Server {
 
     if (req.method === 'POST') {
       let body = ''
-      req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+      let tooLarge = false
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString()
+        if (body.length > MAX_BODY_SIZE) tooLarge = true
+      })
       req.on('end', () => {
+        if (tooLarge) {
+          res.writeHead(413)
+          res.end(JSON.stringify({ error: 'Payload too large' }))
+          return
+        }
         try {
           const msg: WsMessage = JSON.parse(body)
           forwardToRenderer(mainWindow, msg)

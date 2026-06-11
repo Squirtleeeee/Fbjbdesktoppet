@@ -10,6 +10,7 @@ export class SpeechBubble {
   private targetAlpha = 0
   private text = ''
   private animFrameId = 0
+  private observer: ResizeObserver | null = null
 
   private readonly DISPLAY_DURATION = 2500
   private readonly FADE_DURATION = 350
@@ -29,8 +30,8 @@ export class SpeechBubble {
     this.ctx = this.canvas.getContext('2d')!
 
     // 跟随父容器大小
-    const observer = new ResizeObserver(() => this.resize())
-    observer.observe(container)
+    this.observer = new ResizeObserver(() => this.resize())
+    this.observer.observe(container)
     this.resize()
 
     // 动画循环
@@ -171,6 +172,7 @@ export class SpeechBubble {
     if (this.timer) clearTimeout(this.timer)
     if (this.animTimer) clearTimeout(this.animTimer)
     cancelAnimationFrame(this.animFrameId)
+    if (this.observer) { this.observer.disconnect(); this.observer = null }
     this.canvas.remove()
   }
 }

@@ -50,5 +50,5 @@ contextBridge.exposeInMainWorld('petAPI', {
   toggleAlwaysOnTop: () => ipcRenderer.invoke('toggle-always-on-top'),
   isAlwaysOnTop: () => ipcRenderer.invoke('is-always-on-top'),
   getScale: () => ipcRenderer.invoke('get-scale'),
-  isAlwaysOnTopSync: () => ipcRenderer.sendSync('is-always-on-top-sync'),
+  isAlwaysOnTopSync: () => ipcRenderer.sendSync('is-always-on-top-sync'), // eslint-disable-line deprecation/deprecation
 })

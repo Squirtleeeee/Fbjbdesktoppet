@@ -55,18 +55,14 @@
 </div>
 <div id="pages"></div>
 <script>
-// 由主进程通过 executeJavaScript 调用
-window.renderTokenData = function(data) {
+// 通过 preload 暴露的 popupAPI 接收数据
+window.popupAPI.onTokenData(function(data) {
   render(data)
-}
+})
 
 // 页面加载完成后请求数据
 setTimeout(() => {
-  try {
-    require('electron').ipcRenderer.send('request-token-data')
-  } catch(e) {
-    document.getElementById('pages').innerHTML = '<div class="empty">加载中，请稍后再试...</div>'
-  }
+  window.popupAPI.requestTokenData()
 }, 200)
 
 function render(data) {
