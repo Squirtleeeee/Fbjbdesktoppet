@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 /**
  * Cursor Hook — 桌宠状态上报
- *
- * 通过 .cursor/hooks.json 注册，将 Cursor Agent 事件转发到桌宠
- * （HTTP POST http://127.0.0.1:9527，与 Claude Code hook 共用协议）。
- *
- * 仅观察，不拦截任何操作；桌宠未启动时静默失败。
+ * 配置见 hooks/cursor-hooks.example.json
  */
 
 const http = require('http')
@@ -47,7 +43,6 @@ function sendEvent(payload) {
   })
 }
 
-// Cursor 不同版本字段名可能不同，宽松提取
 function getToolName(data) {
   if (!data) return ''
   return data.tool_name || data.toolName || data.tool || data.tool_type || ''
@@ -110,7 +105,6 @@ async function main() {
       break
   }
 
-  // 观察型 hook：永远放行
   process.stdout.write('{}')
 }
 

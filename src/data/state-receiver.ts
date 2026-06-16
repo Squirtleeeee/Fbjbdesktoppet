@@ -1,8 +1,8 @@
 import type { PetState } from '../engine/state-machine'
-import type { TokenData } from '../ui/token-bar'
+import type { TokenStats } from './token-tracker'
 import type { WorkflowStep } from '../ui/workflow-panel'
 
-export interface TokenUpdatePayload extends TokenData {
+export interface TokenUpdatePayload extends TokenStats {
   projectKey?: string
   transcriptKey?: string
   finalize?: boolean

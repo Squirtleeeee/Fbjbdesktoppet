@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      { "command": "node \"<HOOKS路径>/cursor-hook.cjs\" sessionStart" }
+    ],
+    "beforeSubmitPrompt": [
+      { "command": "node \"<HOOKS路径>/cursor-hook.cjs\" beforeSubmitPrompt" }
+    ],
+    "postToolUse": [
+      { "command": "node \"<HOOKS路径>/cursor-hook.cjs\" postToolUse" }
+    ],
+    "stop": [
+      { "command": "node \"<HOOKS路径>/cursor-hook.cjs\" stop" }
+    ]
+  }
+}

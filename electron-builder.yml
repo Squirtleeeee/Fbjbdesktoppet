@@ -1,14 +1,29 @@
 appId: com.phoebe.pet
 productName: 菲比桌宠
+copyright: Copyright © 2026
 directories:
   output: release
+  buildResources: release-template
 files:
   - dist/**/*
   - dist-electron/**/*
-  - assets/**/*
+  - package.json
+asar: true
+artifactName: ${productName}.${ext}
+extraFiles:
+  - from: hooks
+    to: hooks
+    filter:
+      - "**/*"
+  - from: release-template/启动菲比.bat
+    to: .
+  - from: release-template/使用说明.txt
+    to: .
 win:
-  target: portable
+  target:
+    - portable
   icon: assets/sprites/idle/frame_03.png
+  signAndEditExecutable: false
 extraResources:
-  - from: assets/
-    to: assets/
+  - from: assets/sprites
+    to: assets/sprites

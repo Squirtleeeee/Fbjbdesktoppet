@@ -1,16 +1,16 @@
 {
   "name": "phoebe-pet",
   "version": "0.1.0",
-  "description": "菲比桌宠 — Claude Code 工作状态监视器",
+  "description": "菲比桌宠 — Claude Code / Cursor 工作状态监视器",
+  "author": "Squirtleeeee",
+  "license": "MIT",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.renderer.json && vite build",
-    "build:electron": "tsc -p tsconfig.json",
-    "start": "npm run build:electron && electron .",
-    "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder",
-    "sprites:process": "node tools/process-sprites.cjs"
+    "start": "vite build && electron .",
+    "dist": "npm run build && electron-builder && node scripts/make-release-zip.cjs",
+    "pack": "npm run build && electron-builder --dir"
   },
   "dependencies": {
     "electron-store": "^8.1.0",
@@ -20,7 +20,6 @@
     "@types/ws": "^8.5.10",
     "electron": "^28.3.3",
     "electron-builder": "^24.9.1",
-    "pngjs": "^7.0.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
     "vite-plugin-electron": "^0.28.0",

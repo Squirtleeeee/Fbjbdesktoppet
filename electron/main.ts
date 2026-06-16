@@ -8,11 +8,22 @@ let wsServer: ReturnType<typeof startWsServer> | null = null
 let tray: Tray | null = null
 let isQuitting = false
 
+function assetPath(...parts: string[]): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'assets', ...parts)
+  }
+  return path.join(__dirname, '../assets', ...parts)
+}
+
+function distPath(...parts: string[]): string {
+  return path.join(app.getAppPath(), 'dist', ...parts)
+}
+
 // ──── 托盘图标 ────
 function createTrayIcon(): nativeImage {
   const iconPaths = [
-    path.join(__dirname, '../assets/sprites/idle/frame_03.png'),
-    path.join(__dirname, '../dist/sprites/idle/frame_03.png'),
+    assetPath('sprites', 'idle', 'frame_03.png'),
+    distPath('sprites', 'idle', 'frame_03.png'),
   ]
   for (const p of iconPaths) {
     try {
@@ -54,7 +65,7 @@ function buildTrayMenu(): Menu {
 
 function setupTray(): void {
   tray = new Tray(createTrayIcon())
-  tray.setToolTip('桌宠 — Claude Code 监视器')
+  tray.setToolTip('菲比桌宠')
   tray.setContextMenu(buildTrayMenu())
   tray.on('click', () => {
     if (!mainWindow) return

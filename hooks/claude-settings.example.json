@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      { "command": "node", "args": ["<HOOKS路径>/claude-code-hook.cjs", "post_tool"] }
+    ],
+    "Stop": [
+      { "command": "node", "args": ["<HOOKS路径>/claude-code-hook.cjs", "stop"] }
+    ],
+    "PreToolUse": [
+      { "command": "node", "args": ["<HOOKS路径>/claude-code-hook.cjs", "pre_tool"] }
+    ],
+    "UserPromptSubmit": [
+      { "command": "node", "args": ["<HOOKS路径>/claude-code-hook.cjs", "user_prompt"] }
+    ],
+    "SessionStart": [
+      { "command": "node", "args": ["<HOOKS路径>/claude-code-hook.cjs", "session_start"] }
+    ]
+  }
+}
